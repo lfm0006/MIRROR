@@ -220,9 +220,11 @@ public class Gateway implements IGateway {
 		"AND CONSTRAINT_NAME = ?",
 		// PostgreSQL
 		"SELECT DISTINCT "+
-		"ccu.column_name AS COLUMN_NAME, "+ 
+		"c.column_name AS COLUMN_NAME, "+ 
 		"ccu.table_name AS REFERENCED_TABLE_NAME, "+ 
-		"kcu.column_name AS REFERENCED_COLUMN_NAME "+
+		//"kcu.column_name AS REFERENCED_COLUMN_NAME, "+
+		"ccu.column_name AS REFERENCED_COLUMN_NAME, "+
+		"kcu.ordinal_position AS ORDINAL_POSITION "+
 		"FROM information_schema.table_constraints AS tc "+ 
 		"JOIN information_schema.key_column_usage AS kcu "+
 		"ON tc.constraint_name = kcu.constraint_name "+
@@ -233,7 +235,8 @@ public class Gateway implements IGateway {
 		"WHERE constraint_type = 'FOREIGN KEY' "+
 		"AND tc.table_catalog = ? "+
 		"AND tc.table_schema = 'public' "+
-		"AND tc.constraint_name = ?",
+		"AND tc.constraint_name = ? "+
+		"ORDER BY kcu.ordinal_position",
 		// SQL Server
 		"SELECT "+ 
 		"COL_NAME(fc.parent_object_id,fc.parent_column_id) column_name, "+
@@ -248,17 +251,10 @@ public class Gateway implements IGateway {
 
 	public static final String[] SQL_GETCOLUMNSFROMTABLENAME = { 
 		// MySQL
-		"(SELECT COLUMN_NAME, DATA_TYPE, COLUMN_KEY "+
-		"FROM INFORMATION_SCHEMA.COLUMNS "+
-		"WHERE TABLE_SCHEMA = ? "+
-		"AND TABLE_NAME = ? "+
-		"AND COLUMN_KEY = 'PRI')"+
-		"UNION"+
-		"(SELECT COLUMN_NAME, DATA_TYPE, COLUMN_KEY "+
-		"FROM INFORMATION_SCHEMA.COLUMNS "+
-		"WHERE TABLE_SCHEMA = ? "+
-		"AND TABLE_NAME = ? "+
-		"AND COLUMN_KEY <> 'PRI')",
+		"SELECT DISTINCT C.COLUMN_NAME, C.DATA_TYPE, C.COLUMN_KEY "+
+		"FROM INFORMATION_SCHEMA.COLUMNS AS C "+
+		"WHERE C.TABLE_SCHEMA = ? "+
+		"AND C.TABLE_NAME = ? ",
 		// PostgreSQL
 		"SELECT c.column_name, c.data_type, ccu.constraint_name AS COLUMN_KEY "+
 		"FROM information_schema.columns AS c "+
@@ -279,18 +275,32 @@ public class Gateway implements IGateway {
 
 	public static final String[] SQL_GETCOLUMNSFROMTABLENAMEMXN = { 
 		// MySQL
-		"(SELECT COLUMN_NAME, DATA_TYPE, COLUMN_KEY "+
-		"FROM INFORMATION_SCHEMA.COLUMNS "+
-		"WHERE TABLE_SCHEMA = ? "+
-		"AND TABLE_NAME = ? "+
-		"AND COLUMN_KEY <> 'PRI')"+
-		"UNION"+
-		"(SELECT COLUMN_NAME, DATA_TYPE, COLUMN_KEY "+
-		"FROM INFORMATION_SCHEMA.COLUMNS "+
-		"WHERE TABLE_SCHEMA = ? "+
-		"AND TABLE_NAME = ? "+
-		"AND COLUMN_KEY = 'PRI')",
+		"SELECT DISTINCT C.COLUMN_NAME, C.DATA_TYPE, C.COLUMN_KEY "+
+		"FROM INFORMATION_SCHEMA.COLUMNS AS C "+
+		"WHERE C.TABLE_SCHEMA = ? "+
+		"AND C.TABLE_NAME = ? ", 
+		//"(SELECT COLUMN_NAME, DATA_TYPE, COLUMN_KEY "+
+		//"FROM INFORMATION_SCHEMA.COLUMNS "+
+		//"WHERE TABLE_SCHEMA = ? "+
+		//"AND TABLE_NAME = ? "+
+		//"AND COLUMN_KEY <> 'PRI')"+
+		//"UNION"+
+		//"(SELECT COLUMN_NAME, DATA_TYPE, COLUMN_KEY "+
+		//"FROM INFORMATION_SCHEMA.COLUMNS "+
+		//"WHERE TABLE_SCHEMA = ? "+
+		//"AND TABLE_NAME = ? "+
+		//"AND COLUMN_KEY = 'PRI')",
 		// PostgreSQL
+		//"SELECT c.column_name, c.data_type, ccu.constraint_name AS COLUMN_KEY, kcu.CONSTRAINT_NAME AS CONSTRAINT_NAME "+ 
+		//"FROM (information_schema.columns AS c "+
+		//"LEFT JOIN information_schema.constraint_column_usage AS ccu "+ 
+		//"ON (c.column_name = ccu.column_name) AND (c.table_name = ccu.table_name)) "+
+		//"LEFT JOIN information_schema.key_column_usage AS kcu "+
+		//"ON (kcu.column_name = c.column_name AND c.table_name = kcu.table_name) "+
+		//"WHERE c.table_schema = 'public' "+ 
+		//"AND c.table_catalog = ? "+ 
+		//"AND (ccu.constraint_name LIKE '%pkey' OR ccu.constraint_name IS NULL) "+ 
+		//"AND c.table_name = ?",
 		"SELECT c.column_name, c.data_type, ccu.constraint_name AS COLUMN_KEY "+
 		"FROM information_schema.columns AS c "+
 		"LEFT OUTER JOIN information_schema.constraint_column_usage AS ccu "+
@@ -345,7 +355,7 @@ public class Gateway implements IGateway {
 		"SELECT DISTINCT "+
 		"tc.constraint_name, "+
 		"ccu.table_name AS REFERENCED_TABLE_NAME, "+
-		"ccu.column_name AS REFERENCED_COLUMN_NAME, "+
+		"c.column_name AS REFERENCED_COLUMN_NAME, "+
 		"kcu.column_name AS COLUMN_NAME, "+
 		"tc.table_name AS TABLE_NAME "+
 		"FROM information_schema.table_constraints AS tc "+ 
@@ -475,24 +485,25 @@ public class Gateway implements IGateway {
 		"ORDER BY PARENT, R1.ORDINAL_POSITION",
 		// PostgreSQL
 		"SELECT DISTINCT "+
-		"ccu.table_name AS R1, "+
-		"ccu.column_name AS REF_FIELD, "+ 
-		"tc.table_name AS R2, "+ 
-		"kcu.column_name AS FIELD, "+ 
+		"ccu.table_name AS PARENT, "+
+		"c.column_name AS PK, "+
+		"tc.table_name AS CHILD, "+
+		"kcu.column_name AS FK, "+
 		"c.is_nullable AS NULLABLE, "+ 
-		"tc.constraint_name AS C1 "+
+		"tc.constraint_name AS CONSTRAINT_NAME, "+
+		"kcu.ordinal_position AS ORDINAL_POSITION "+
 		"FROM information_schema.table_constraints AS tc "+ 
 		"JOIN information_schema.key_column_usage AS kcu "+
 		"ON tc.constraint_name = kcu.constraint_name "+
-		"JOIN information_schema.constraint_column_usage AS ccu "+
+		"JOIN information_schema.constraint_column_usage AS ccu "+ 
 		"ON ccu.constraint_name = tc.constraint_name "+
 		"JOIN information_schema.columns AS c "+
-		"ON (c.column_name = kcu.column_name) AND (c.table_name = tc.table_name) "+
-		"WHERE constraint_type = 'FOREIGN KEY' "+ 
+		"ON (c.column_name = kcu.column_name) AND (c.table_name = tc.table_name) "+ 
+		"WHERE constraint_type = 'FOREIGN KEY' "+
 		"AND tc.table_catalog = ? "+
-		"AND tc.table_schema = 'public' "+ 
-		"AND tc.table_name = ?"+
-		"ORDER BY R1",
+		"AND tc.table_schema = 'public' "+
+		"AND tc.table_name = ? "+
+		"ORDER BY PARENT, kcu.ordinal_position;",
 		// SQL Server
 		"SELECT  "+
 		"OBJECT_NAME(fc.referenced_object_id) R1, "+
@@ -541,6 +552,37 @@ public class Gateway implements IGateway {
 		"AND c.table_catalog = ? "+
 	"AND c.table_name = ? ) AS internalquery"};
 
+	/* getColumnsFromTableNameCountMxN */    
+	public static final String[] SQL_GETCOLUMNSFROMTABLENAMECOUNTMXN = {
+		// MySQL
+		"SELECT COUNT(*) AS N "+
+		"FROM ( "+
+		"    SELECT COLUMN_NAME, DATA_TYPE, COLUMN_KEY "+
+		"    FROM INFORMATION_SCHEMA.COLUMNS "+
+		"    WHERE TABLE_SCHEMA = ? "+
+		"    AND TABLE_NAME = ?) "+
+		"    AS internalquery",
+		// PostgreSQL
+		"SELECT COUNT(*) AS N "+ 
+		"FROM (SELECT c.column_name, c.data_type, ccu.constraint_name AS COLUMN_KEY "+
+		"FROM information_schema.columns AS c "+
+		"LEFT OUTER JOIN information_schema.constraint_column_usage AS ccu "+
+		"ON (c.column_name = ccu.column_name) AND (c.table_name = ccu.table_name) "+
+		"WHERE c.table_schema = 'public' "+
+		"AND c.table_catalog = ? "+
+		"AND (ccu.constraint_name LIKE '%pkey' OR ccu.constraint_name IS NULL) "+
+		"AND c.table_name = ? ) AS internalquery",
+		// SQL Server
+		"SELECT COUNT(*) AS N "+ 
+		"FROM (SELECT c.column_name, c.data_type, ccu.constraint_name AS COLUMN_KEY "+
+		"FROM information_schema.columns AS c "+
+		"LEFT OUTER JOIN information_schema.constraint_column_usage AS ccu "+
+		"ON (c.column_name = ccu.column_name) AND (c.table_name = ccu.table_name) "+
+		"WHERE c.table_schema = 'guest' "+
+		"AND c.table_catalog = ? "+
+	"AND c.table_name = ? ) AS internalquery"};
+
+	
 	/* getConstraintsFromTableName */
 	public static final String[] SQL_GETCONSTRAINTSFROMTABLENAME = {
 		// MySQL
@@ -554,7 +596,8 @@ public class Gateway implements IGateway {
 		"SELECT DISTINCT "+
 		"ccu.table_name AS R1, "+
 		"tc.table_name AS R2, "+
-		"tc.constraint_name AS C1 "+
+		"tc.constraint_name AS C1, "+
+		"kcu.column_name AS CN1 "+
 		"FROM information_schema.table_constraints AS tc "+ 
 		"JOIN information_schema.key_column_usage AS kcu "+
 		"ON tc.constraint_name = kcu.constraint_name "+
@@ -578,6 +621,55 @@ public class Gateway implements IGateway {
 		"AND SCHEMA_NAME(f.schema_id) = 'guest' "+
 	"AND OBJECT_NAME (f.parent_object_id) = ?"};
 
+	public static final String[] SQL_GETCONSTRAINTFROMCOLUMNNAME = {
+		// MySQL
+		"SELECT COUNT(*) AS TOTAL FROM ( "+
+		"SELECT DISTINCT C.COLUMN_NAME, K.CONSTRAINT_NAME "+ 
+		"FROM INFORMATION_SCHEMA.COLUMNS AS C "+
+		"LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS K "+ 
+		"ON C.TABLE_NAME=K.TABLE_NAME "+ 
+		"AND C.COLUMN_NAME=K.COLUMN_NAME "+ 
+		"AND C.TABLE_SCHEMA=K.TABLE_SCHEMA "+ 
+		"WHERE C.TABLE_SCHEMA = ? "+ 
+		"AND C.TABLE_NAME = ? "+ 
+		"AND C.COLUMN_NAME = ? "+
+		"AND K.CONSTRAINT_NAME <> 'PRIMARY' ) AS internal;",
+		// PostgreSQL
+		"SELECT COUNT(*) AS TOTAL FROM ( "+
+		"SELECT c.column_name AS COLUMN_NAME, kcu.CONSTRAINT_NAME AS CONSTRAINT_NAME "+
+		"FROM (information_schema.columns AS c "+
+		"LEFT JOIN information_schema.constraint_column_usage AS ccu "+ 
+		"ON (c.column_name = ccu.column_name) AND (c.table_name = ccu.table_name)) "+ 
+		"LEFT JOIN information_schema.key_column_usage AS kcu "+ 
+		"ON (kcu.column_name = c.column_name AND c.table_name = kcu.table_name) "+ 
+		"WHERE c.table_schema = 'public' "+ 
+		"AND c.table_catalog = ? "+ 
+		"AND position('pkey' in kcu.constraint_name) = 0 "+
+		"AND c.table_name = ? "+
+		"AND c.column_name = ? ) AS internal;",
+		//"SELECT DISTINCT C.COLUMN_NAME, K.CONSTRAINT_NAME "+ 
+		//"FROM INFORMATION_SCHEMA.COLUMNS AS C "+
+		//"LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS K "+ 
+		//"ON C.TABLE_NAME=K.TABLE_NAME "+ 
+		//"AND C.COLUMN_NAME=K.COLUMN_NAME "+ 
+		//"AND C.TABLE_SCHEMA=K.TABLE_SCHEMA "+ 
+		//"WHERE C.TABLE_SCHEMA = ? "+ 
+		//"AND C.TABLE_NAME = ? "+ 
+		//"AND C.COLUMN_NAME = ? "+
+		//"AND K.CONSTRAINT_NAME <> 'PRIMARY';",
+		// SQL Server
+		"SELECT DISTINCT C.COLUMN_NAME, K.CONSTRAINT_NAME "+ 
+		"FROM INFORMATION_SCHEMA.COLUMNS AS C "+
+		"LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS K "+ 
+		"ON C.TABLE_NAME=K.TABLE_NAME "+ 
+		"AND C.COLUMN_NAME=K.COLUMN_NAME "+ 
+		"AND C.TABLE_SCHEMA=K.TABLE_SCHEMA "+ 
+		"WHERE C.TABLE_SCHEMA = ? "+ 
+		"AND C.TABLE_NAME = ? "+ 
+		"AND C.COLUMN_NAME = ? "+
+		"AND K.CONSTRAINT_NAME <> 'PRIMARY';",
+	};
+		
 	/* checkRelationship1x1 */
 	public static final String[] SQL_CHECKRELATIONSHIP1X1 = {
 		// MySQL
@@ -589,13 +681,12 @@ public class Gateway implements IGateway {
 		"HAVING N>1 "+
 		") AS internal_query;",
 		// PostgreSQL
-		"SELECT COUNT(*) AS TOTAL "+
-		"FROM ( "+
-		"SELECT COUNT(*) AS N "+
-		"FROM ? AS C JOIN ? AS P ON C.?=P.? "+
-		"GROUP BY C.? "+
-		"HAVING N>1 "+
-		") AS internal_query;",
+		"SELECT COUNT(*) AS TOTAL "+  
+		"FROM ( "+ 
+		"SELECT COUNT(*) AS N "+ 
+		"FROM \"?\" AS C JOIN \"?\" AS P ON C.\"?\"=P.\"?\""+ 
+		"GROUP BY C.\"?\" "+
+		"HAVING COUNT(*)>1) AS internal_query;",
 		// SQL Server
 		"SELECT COUNT(*) AS TOTAL "+
 		"FROM ( "+
@@ -616,29 +707,33 @@ public class Gateway implements IGateway {
 		"AND R1.REFERENCED_TABLE_NAME= ? "+
 		"AND R1.TABLE_NAME= ? "+
 		"AND R1.TABLE_SCHEMA = ? "+
-		"AND R2.TABLE_SCHEMA = ?) "+
+		"AND R2.TABLE_SCHEMA = R1.TABLE_SCHEMA) "+
 		"JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS R3 "+
 		"ON R1.TABLE_NAME=R3.TABLE_NAME "+ 
 		"AND R1.COLUMN_NAME=R3.COLUMN_NAME "+ 
 		"AND R3.CONSTRAINT_NAME='PRIMARY' "+ 
-		"AND R1.TABLE_SCHEMA = ? "+
-		"AND R3.TABLE_SCHEMA = ?)",
+		"AND R3.TABLE_SCHEMA = R1.TABLE_SCHEMA)",
 		// PostgreSQL
-		"SELECT COUNT(*) AS ISA "+
-		"FROM ((INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS R1 JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS R2 "+ 
-		"ON R1.REFERENCED_TABLE_NAME=R2.TABLE_NAME "+
-		"AND R1.REFERENCED_COLUMN_NAME=R2.COLUMN_NAME "+
-		"AND R2.CONSTRAINT_NAME='PRIMARY' "+
-		"AND R1.REFERENCED_TABLE_NAME= ? "+
-		"AND R1.TABLE_NAME= ? "+
-		"AND R1.TABLE_SCHEMA = ? "+
-		"AND R2.TABLE_SCHEMA = ?) "+
-		"JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS R3 "+
-		"ON R1.TABLE_NAME=R3.TABLE_NAME "+ 
-		"AND R1.COLUMN_NAME=R3.COLUMN_NAME "+ 
-		"AND R3.CONSTRAINT_NAME='PRIMARY' "+ 
-		"AND R1.TABLE_SCHEMA = ? "+
-		"AND R3.TABLE_SCHEMA = ?)",
+		"WITH twoarg AS (SELECT DISTINCT kcu.table_name AS tablename,kcu.column_name,ccu.table_name, ccu.column_name FROM "+ 
+		"((((information_schema.key_column_usage as kcu "+ 
+		"JOIN information_schema.constraint_column_usage as ccu ON kcu.constraint_name=ccu.constraint_name) "+ 
+		"JOIN information_schema.table_constraints as tc ON (tc.constraint_name=kcu.constraint_name AND tc.constraint_type = 'FOREIGN KEY')) "+
+		"JOIN information_schema.key_column_usage as kcu2 ON kcu2.table_name=ccu.table_name) "+
+		"JOIN information_schema.constraint_column_usage as ccu2 ON ccu.column_name=ccu2.column_name) "+ 
+		"JOIN information_schema.key_column_usage as kcu3 ON (kcu3.table_name=kcu.table_name AND kcu3.column_name=kcu.column_name) "+
+		"JOIN information_schema.table_constraints as tc3 ON (tc3.constraint_name=kcu3.constraint_name AND tc3.constraint_type = 'PRIMARY KEY') "+ 
+		"WHERE ccu.table_name = ? AND kcu.table_name = ? AND kcu.table_catalog = ?), "+
+		"onearg AS (SELECT DISTINCT kcu.table_name AS tablename,kcu.column_name,ccu.table_name, ccu.column_name FROM "+ 
+		"((((information_schema.key_column_usage as kcu "+ 
+		"JOIN information_schema.constraint_column_usage as ccu ON kcu.constraint_name=ccu.constraint_name) "+ 
+		"JOIN information_schema.table_constraints as tc ON (tc.constraint_name=kcu.constraint_name AND tc.constraint_type = 'FOREIGN KEY')) "+
+		"JOIN information_schema.key_column_usage as kcu2 ON kcu2.table_name=ccu.table_name) "+
+		"JOIN information_schema.constraint_column_usage as ccu2 ON ccu.column_name=ccu2.column_name) "+ 
+		"JOIN information_schema.key_column_usage as kcu3 ON (kcu3.table_name=kcu.table_name AND kcu3.column_name=kcu.column_name) "+
+		"JOIN information_schema.table_constraints as tc3 ON (tc3.constraint_name=kcu3.constraint_name AND tc3.constraint_type = 'PRIMARY KEY') "+ 
+		"WHERE kcu.table_name = (SELECT tablename FROM twoarg)) "+
+		"SELECT COUNT(*) AS ISA FROM onearg "+
+		"HAVING COUNT(*) = (SELECT COUNT(*) FROM twoarg);",
 		// SQL Server
 		"SELECT COUNT(*) AS ISA "+
 		"FROM ((INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS R1 JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS R2 "+ 
@@ -732,9 +827,17 @@ public class Gateway implements IGateway {
 
 		try {
 			con = ConnectionManager.getConnection(database, properties);
-			String cmd = "SELECT COUNT(*) AS N "+
-					"FROM `"+dbName+"`.`"+childTable+"` AS C JOIN `"+
-					dbName+"`.`"+parentTable+"` AS P ON C.`"+childPK+"`=P.`"+parentPK+"`";
+			String cmd ="";
+			if(database == 0) {
+				cmd = "SELECT COUNT(*) AS N "+
+						"FROM `"+dbName+"`.`"+childTable+"` AS C JOIN `"+
+						dbName+"`.`"+parentTable+"` AS P ON C.`"+childPK+"`=P.`"+parentPK+"`";
+			} else
+			if(database == 1) {
+				cmd = "SELECT COUNT(*) AS N "+
+						"FROM \"" +childTable+"\" AS C JOIN \""+
+						parentTable+"\" AS P ON C.\""+childPK+"\"=P.\""+parentPK+"\"";
+			}
 			//System.out.println(cmd);
 			stmt = con.prepareStatement(cmd);
 			VerboseMode.verbose(stmt.toString(), VerboseMode.VERBOSE_SQL);
@@ -747,8 +850,8 @@ public class Gateway implements IGateway {
 			}
 
 		} catch (SQLException exc) {
-			StringBuffer mensagem = new StringBuffer("Could not account records number.");
-			mensagem.append("\nMotivo: " + exc.getMessage());
+			StringBuffer mensagem = new StringBuffer("Can't count the records.");
+			mensagem.append("\nCause: " + exc.getMessage());
 			throw new R2RMLException(mensagem.toString());
 		} finally {
 			ConnectionManager.closeConnection(con, stmt, rs);
@@ -758,7 +861,7 @@ public class Gateway implements IGateway {
 
 	public boolean checkRelationship1x1(Properties properties, String DBName, String parentTable, String childTable, String parentPK, String childPK) throws R2RMLException {
 		Connection con = null;
-		//PreparedStatement stmt = null;
+		PreparedStatement pstmt = null;
 		Statement stmt = null;
 		ResultSet rs = null;
 
@@ -769,18 +872,34 @@ public class Gateway implements IGateway {
 		boolean check = false;
 		try {
 			con = ConnectionManager.getConnection(database, properties);
-			String cmd = "SELECT COUNT(*) AS TOTAL "+
+			if(database == 0) {
+				String cmd = "SELECT COUNT(*) AS TOTAL "+
 					"FROM ( "+
 					"SELECT COUNT(*) AS N "+
 					"FROM `"+childTable+"` AS C JOIN `"+parentTable+"` AS P ON C.`"+childPK+"`=P.`"+parentPK+"` "+
 					"GROUP BY C.`"+childPK+"` HAVING N>1 "+
 					") AS internal_query;";
-			//System.out.println(cmd);
-			stmt = con.createStatement();
-			stmt.executeUpdate("USE "+DBName+";");
-			stmt = con.prepareStatement(cmd);
-			VerboseMode.verbose(stmt.toString(), VerboseMode.VERBOSE_SQL);
-			rs = stmt.executeQuery(cmd);
+				//System.out.println(cmd);
+				stmt = con.createStatement();
+				stmt.executeUpdate("USE "+DBName+";");
+				stmt = con.prepareStatement(cmd);
+				VerboseMode.verbose(stmt.toString(), VerboseMode.VERBOSE_SQL);
+				rs = stmt.executeQuery(cmd);
+			} else {
+				if(database == 1) {
+					String cmd = "SELECT COUNT(*) AS TOTAL "+
+							"FROM ( "+
+							"SELECT COUNT(*) AS N "+
+							"FROM \""+childTable+"\" AS C JOIN \""+parentTable+"\" AS P ON C.\""+childPK+"\"=P.\""+parentPK+"\" "+
+							"GROUP BY C.\""+childPK+"\" HAVING COUNT(*)>1 "+
+							") AS internal_query;";
+				//System.out.println(cmd);
+				pstmt = con.prepareStatement(cmd);
+				VerboseMode.verbose(pstmt.toString(), VerboseMode.VERBOSE_SQL);
+				rs = pstmt.executeQuery();
+					
+				}
+			}
 
 			if(rs != null) {
 				while(rs.next()) {
@@ -791,7 +910,7 @@ public class Gateway implements IGateway {
 
 		} catch (SQLException exc) {
 			StringBuffer mensagem = new StringBuffer("Unable to check the cardinality.");
-			mensagem.append("\nMotivo: " + exc.getMessage());
+			mensagem.append("\nCause: " + exc.getMessage());
 			throw new R2RMLException(mensagem.toString());
 		} finally {
 			//ConnectionManager.closeConnection(con, stmt, rs);
@@ -816,9 +935,6 @@ public class Gateway implements IGateway {
 			stmt.setString(1, parentTable);
 			stmt.setString(2, childTable);
 			stmt.setString(3, schema);
-			stmt.setString(4, schema);
-			stmt.setString(5, schema);
-			stmt.setString(6, schema);
 			VerboseMode.verbose(stmt.toString(), VerboseMode.VERBOSE_SQL);
 			rs = stmt.executeQuery();
 
@@ -881,12 +997,14 @@ public class Gateway implements IGateway {
 		try {
 			con = ConnectionManager.manageConnection(database, properties);
 			stmt = con.createStatement();
-			stmt.executeUpdate("SET FOREIGN_KEY_CHECKS=0;");
+			if(properties.getProperty("driver").equals("MySQL")) {
+				stmt.executeUpdate("SET FOREIGN_KEY_CHECKS=0;");
+			}
 			stmt.executeUpdate("CREATE DATABASE " + DBname);
 
 		} catch (SQLException exc) {
 			StringBuffer mensagem = new StringBuffer("Unable to create the database.");
-			mensagem.append("\nMotivo: " + exc.getMessage());
+			mensagem.append("\nCause: " + exc.getMessage());
 			throw new R2RMLException(mensagem.toString());
 		} finally {
 			ConnectionManager.closeConnection(con);
@@ -907,7 +1025,7 @@ public class Gateway implements IGateway {
 
 		} catch (SQLException exc) {
 			StringBuffer mensagem = new StringBuffer("Unable to delete the database.");
-			mensagem.append("\nMotivo: " + exc.getMessage());
+			mensagem.append("\nCause: " + exc.getMessage());
 			throw new R2RMLException(mensagem.toString());
 		} finally {
 			ConnectionManager.closeConnection(con);
@@ -928,7 +1046,7 @@ public class Gateway implements IGateway {
 
 		} catch (SQLException exc) {
 			StringBuffer mensagem = new StringBuffer("Can't open the database.");
-			mensagem.append("\nMotivo: " + exc.getMessage());
+			mensagem.append("\nCause: " + exc.getMessage());
 			throw new R2RMLException(mensagem.toString());
 		} finally {
 			ConnectionManager.closeConnection(con);
@@ -945,12 +1063,17 @@ public class Gateway implements IGateway {
 		try {
 			con = ConnectionManager.getConnectionDB(database, DBname, properties);
 			stmt = con.createStatement();
-			stmt.executeUpdate("SET FOREIGN_KEY_CHECKS=0;");
-			stmt.executeUpdate(command);
+			if(properties.getProperty("driver").equals("MySQL")) {
+				stmt.executeUpdate("SET FOREIGN_KEY_CHECKS=0;");
+			}
+			if(properties.getProperty("driver").equals("PostgreSQL")) {
+				con.setAutoCommit(true);
+				stmt.executeUpdate(command);
+		}
 
 		} catch (SQLException exc) {
 			StringBuffer mensagem = new StringBuffer("Unable to execute SQL general command.");
-			mensagem.append("\nMotivo: " + exc.getMessage());
+			mensagem.append("\nCause: " + exc.getMessage());
 			throw new R2RMLException(mensagem.toString());
 		} finally {
 			ConnectionManager.closeConnection(con);
@@ -991,7 +1114,7 @@ public class Gateway implements IGateway {
 
 		} catch (SQLException exc) {
 			StringBuffer mensagem = new StringBuffer("Unable to execute SQL query");
-			mensagem.append("\nMotivo: " + exc.getMessage());
+			mensagem.append("\nCause: " + exc.getMessage());
 			throw new R2RMLException(mensagem.toString());
 		} finally {
 			ConnectionManager.closeConnection(con);
@@ -1051,7 +1174,7 @@ public class Gateway implements IGateway {
 
 		} catch (SQLException exc) {
 			StringBuffer mensagem = new StringBuffer("Unable to query the general schema.");
-			mensagem.append("\nMotivo: " + exc.getMessage());
+			mensagem.append("\nCause: " + exc.getMessage());
 			throw new R2RMLException(mensagem.toString());
 		} finally {
 			ConnectionManager.closeConnection(con, stmt, rs);
@@ -1109,7 +1232,7 @@ public class Gateway implements IGateway {
 
 		} catch (SQLException exc) {
 			StringBuffer mensagem = new StringBuffer("Unable to query the detailed schema.");
-			mensagem.append("\nMotivo: " + exc.getMessage());
+			mensagem.append("\nCause: " + exc.getMessage());
 			throw new R2RMLException(mensagem.toString());
 		} finally {
 			ConnectionManager.closeConnection(con, stmt, rs);
@@ -1149,7 +1272,7 @@ public class Gateway implements IGateway {
 
 		} catch (SQLException exc) {
 			StringBuffer mensagem = new StringBuffer("Unable to query all right tables.");
-			mensagem.append("\nMotivo: " + exc.getMessage());
+			mensagem.append("\nCause: " + exc.getMessage());
 			throw new R2RMLException(mensagem.toString());
 		} finally {
 			ConnectionManager.closeConnection(con, stmt, rs);
@@ -1181,7 +1304,7 @@ public class Gateway implements IGateway {
 
 		} catch (SQLException exc) {
 			StringBuffer mensagem = new StringBuffer("Unable to account the left tables.");
-			mensagem.append("\nMotivo: " + exc.getMessage());
+			mensagem.append("\nCause: " + exc.getMessage());
 			throw new R2RMLException(mensagem.toString());
 		} finally {
 			ConnectionManager.closeConnection(con, stmt, rs);
@@ -1223,7 +1346,7 @@ public class Gateway implements IGateway {
 
 		} catch (SQLException exc) {
 			StringBuffer mensagem = new StringBuffer("Unable to query the left table detailed.");
-			mensagem.append("\nMotivo: " + exc.getMessage());
+			mensagem.append("\nCause: " + exc.getMessage());
 			throw new R2RMLException(mensagem.toString());
 		} finally {
 			ConnectionManager.closeConnection(con, stmt, rs);
@@ -1265,7 +1388,7 @@ public class Gateway implements IGateway {
 
 		} catch (SQLException exc) {
 			StringBuffer mensagem = new StringBuffer("Unable to query the columns of the specified table.");
-			mensagem.append("\nMotivo: " + exc.getMessage());
+			mensagem.append("\nCause: " + exc.getMessage());
 			throw new R2RMLException(mensagem.toString());
 		} finally {
 			ConnectionManager.closeConnection(con, stmt, rs);
@@ -1297,7 +1420,7 @@ public class Gateway implements IGateway {
 
 		} catch (SQLException exc) {
 			StringBuffer mensagem = new StringBuffer("Unable to account table columns.");
-			mensagem.append("\nMotivo: " + exc.getMessage());
+			mensagem.append("\nCause: " + exc.getMessage());
 			throw new R2RMLException(mensagem.toString());
 		} finally {
 			ConnectionManager.closeConnection(con, stmt, rs);
@@ -1516,8 +1639,10 @@ public class Gateway implements IGateway {
 			stmt = con.prepareStatement(SQL_GETCOLUMNSFROMTABLENAME[database]);
 			stmt.setString(1, schema);
 			stmt.setString(2, tablename);
-			stmt.setString(3, schema);
-			stmt.setString(4, tablename);
+			//if(database == 0) {
+			//	stmt.setString(3, schema);
+			//	stmt.setString(4, tablename);
+			//}
 			VerboseMode.verbose(stmt.toString(), VerboseMode.VERBOSE_SQL);
 			rs = stmt.executeQuery();
 
@@ -1527,9 +1652,11 @@ public class Gateway implements IGateway {
 				while(rs.next()) {
 					n1 = rs.getString("COLUMN_NAME");
 					n2 = rs.getString("COLUMN_KEY");
-					if(n2.equals("PRI") || n2.contains("pkey")) {
-						hasPK = true;
-						columns.add(n1);
+					if(n2 != null) {
+						if(n2.equals("PRI") || n2.contains("pkey")) {
+							hasPK = true;
+							columns.add(n1);
+						}
 					}
 				}
 			}
@@ -1559,8 +1686,10 @@ public class Gateway implements IGateway {
 			stmt = con.prepareStatement(SQL_GETCOLUMNSFROMTABLENAME[database]);
 			stmt.setString(1, schema);
 			stmt.setString(2, tablename);
-			stmt.setString(3, schema);
-			stmt.setString(4, tablename);
+			//if(database == 0) {
+			//	stmt.setString(3, schema);
+			//	stmt.setString(4, tablename);
+			//}
 			VerboseMode.verbose(stmt.toString(), VerboseMode.VERBOSE_SQL);
 			rs = stmt.executeQuery();
 
@@ -1604,7 +1733,7 @@ public class Gateway implements IGateway {
 		}
 		Connection con = null;
 		PreparedStatement stmt = null;
-		ResultSet rs = null;
+		ResultSet rs = null, rs2 = null;
 
 		VerboseMode.verbose("getColumnsFromTableName", VerboseMode.VERBOSE_SQL);
 
@@ -1617,26 +1746,61 @@ public class Gateway implements IGateway {
 			stmt = con.prepareStatement(SQL_GETCOLUMNSFROMTABLENAME[database]);
 			stmt.setString(1, schema);
 			stmt.setString(2, tablename);
-			stmt.setString(3, schema);
-			stmt.setString(4, tablename);
 			VerboseMode.verbose(stmt.toString(), VerboseMode.VERBOSE_SQL);
 			rs = stmt.executeQuery();
 
-			String columnName, datatype, columnKey;
+			String columnName, datatype, columnKey; //, constraintName;
 
 			if(rs != null) {
 				while(rs.next()) {
 					columnName = rs.getString("COLUMN_NAME");
 					datatype = rs.getString("DATA_TYPE");
 					columnKey = rs.getString("COLUMN_KEY");
+					//constraintName = rs.getString("CONSTRAINT_NAME");
 					if(columnKey != null) {
 						if(columnKey.equals("PRI") || columnKey.contains("pkey")) {
 							columnKey = "PRIMARY KEY";
+						} else {
+							
+							stmt = con.prepareStatement(SQL_GETCONSTRAINTFROMCOLUMNNAME[database]);
+							stmt.setString(1, schema);
+							stmt.setString(2, tablename);
+							stmt.setString(3, columnName);
+
+							rs2 = stmt.executeQuery();
+						
+							if(rs2 != null) {
+								if(rs2.next()) {
+									int t = rs2.getInt("TOTAL"); 
+									if(t > 0) {
+										if(columnKey.equals("")) {
+											columnKey = "MUL";
+										}
+									}
+								}
+							}
 						}
 					}
 					else
 					{
 						columnKey = "";
+						stmt = con.prepareStatement(SQL_GETCONSTRAINTFROMCOLUMNNAME[database]);
+						stmt.setString(1, schema);
+						stmt.setString(2, tablename);
+						stmt.setString(3, columnName);
+
+						rs2 = stmt.executeQuery();
+					
+						if(rs2 != null) {
+							if(rs2.next()) {
+								int t = rs2.getInt("TOTAL"); 
+								if(t > 0) {
+									if(columnKey.equals("")) {
+										columnKey = "MUL";
+									}
+								}
+							}
+						}
 					}
 					//System.out.print(n1 + " ");
 					listColumnNames.add(columnName);
@@ -1664,7 +1828,7 @@ public class Gateway implements IGateway {
 		}
 		Connection con = null;
 		PreparedStatement stmt = null;
-		ResultSet rs = null;
+		ResultSet rs = null, rs2 = null;
 
 		VerboseMode.verbose("getColumnsFromTableName", VerboseMode.VERBOSE_SQL);
 
@@ -1677,8 +1841,10 @@ public class Gateway implements IGateway {
 			stmt = con.prepareStatement(SQL_GETCOLUMNSFROMTABLENAMEMXN[database]);
 			stmt.setString(1, schema);
 			stmt.setString(2, tablename);
-			stmt.setString(3, schema);
-			stmt.setString(4, tablename);
+			//if(database == 0) {
+			//	stmt.setString(3, schema);
+			//	stmt.setString(4, tablename);
+			//}
 			VerboseMode.verbose(stmt.toString(), VerboseMode.VERBOSE_SQL);
 			rs = stmt.executeQuery();
 
@@ -1689,9 +1855,24 @@ public class Gateway implements IGateway {
 					n1 = rs.getString("COLUMN_NAME");
 					n2 = rs.getString("DATA_TYPE");
 					n3 = rs.getString("COLUMN_KEY");
+
 					if(n3 != null) {
 						if(n3.equals("PRI") || n3.contains("pkey")) {
 							n3 = "PRIMARY KEY";
+						} else { 
+							stmt = con.prepareStatement(SQL_GETCONSTRAINTFROMCOLUMNNAME[database]);
+							stmt.setString(1, schema);
+							stmt.setString(2, tablename);
+							stmt.setString(3, n1);
+
+							rs2 = stmt.executeQuery();
+						
+							if(rs2 != null) {
+								if(!n3.equals("")) {
+									n3 = "MUL";
+								}
+							}
+
 						}
 					}
 					else
@@ -1901,7 +2082,7 @@ public class Gateway implements IGateway {
 
 		} catch (SQLException exc) {
 			StringBuffer mensagem = new StringBuffer("Can't account the relationships from right table and schema.");
-			mensagem.append("\nMotivo: " + exc.getMessage());
+			mensagem.append("\nCause: " + exc.getMessage());
 			throw new R2RMLException(mensagem.toString());
 		} finally {
 			ConnectionManager.closeConnection(con, stmt, rs);
@@ -2020,7 +2201,7 @@ public class Gateway implements IGateway {
 
 		} catch (SQLException exc) {
 			StringBuffer mensagem = new StringBuffer("Can't account the relationships from right table and schema.");
-			mensagem.append("\nMotivo: " + exc.getMessage());
+			mensagem.append("\nCause: " + exc.getMessage());
 			throw new R2RMLException(mensagem.toString());
 		} finally {
 			ConnectionManager.closeConnection(con, stmt, rs);
@@ -2161,4 +2342,31 @@ public class Gateway implements IGateway {
 		return "?";
 	}
 
+	// Methods exclusive for PostgreSQL 
+	public void refreshDatabase(Properties properties, String DBname) throws R2RMLException {
+		Connection con = null;
+		Statement stmt = null;
+
+		VerboseMode.verbose("refreshDatabase", VerboseMode.VERBOSE_SQL);
+
+		// Get 
+		if(properties.getProperty("driver").equals("PostgreSQL")) {
+			try {
+				con = ConnectionManager.getConnectionDB(database, DBname, properties);
+				stmt = con.createStatement();
+			//stmt.executeUpdate(command);
+		
+			} catch (SQLException exc) {
+				StringBuffer mensagem = new StringBuffer("Unable to execute SQL refresh command.");
+				mensagem.append("\nMotive: " + exc.getMessage());
+				throw new R2RMLException(mensagem.toString());
+			} finally {
+				ConnectionManager.closeConnection(con);
+			}
+		}
+
+	
+	}
+	
+	
 }

@@ -365,13 +365,21 @@ public class R2RMLProcess {
 		try {
 			output = new PrintWriter(filelog);
 
-			output.println("** Analysing DB schema: " + schema);
+			output.print("** Analysing DB schema: " + schema);
+			if(this.driver == 0) {
+				output.println(" (MySQL)");
+			}
+			if(this.driver == 1) {
+				output.println(" (PostgreSQL)");
+			} else {
+				output.println();
+			}
 			Calendar d = Calendar.getInstance();
 			output.printf("%tB %te, %tY - %tl:%tM %tp%n\n\n", d, d, d, d, d, d);
 
 			// Get the connection with database
 			IGateway gateway = new Gateway();
-			gateway.setDatabase(driver);
+			gateway.setDatabase(this.driver);
 			// Get the tables in the schema
 			gateway.getTablesViewsFromSchema(properties, listTableNames
 					, listTableTypes, schema, this.mapTableTypes);
@@ -414,9 +422,22 @@ public class R2RMLProcess {
 								} else {
 									databaseName = schema; 
 								}
-								long nreg = gateway.countRecordsFromRelationship(properties, databaseName, t, t2, k.toUpperCase(), rk.toUpperCase());
+								long nreg = 0;
+								if(this.driver == DB_MYSQL) {
+									nreg = gateway.countRecordsFromRelationship(properties, databaseName, t, t2, k.toUpperCase(), rk.toUpperCase());
+								} else
+								if(this.driver == DB_POSTGRESQL) {
+									nreg = gateway.countRecordsFromRelationship(properties, databaseName, t, t2, k, rk);
+									//nreg = gateway.countRecordsFromRelationship(properties, databaseName, t, t2, rk.toUpperCase(), k.toUpperCase());
+								}
 								if(nreg > 0) {
-									String card = gateway.checkRelationship1x1(properties, databaseName, t, t2, k.toUpperCase(), rk.toUpperCase()) ? "1x1" : "1xN";
+									String card = "";
+									if(this.driver == DB_MYSQL) {
+										card = gateway.checkRelationship1x1(properties, databaseName, t, t2, k.toUpperCase(), rk.toUpperCase()) ? "1x1" : "1xN";
+									}
+									if(this.driver == DB_POSTGRESQL) {
+										card = gateway.checkRelationship1x1(properties, databaseName, t, t2, k, rk) ? "1x1" : "1xN";
+									}
 									output.println("        Cardinality: " + card + " (checked data: "+ String.valueOf(nreg) + " record(s))");
 								} else {
 									output.println("        Unable to define cardinality (no data)");
@@ -684,7 +705,7 @@ public class R2RMLProcess {
 								// -------------------------------------------------------
 								// Saturation of the child table
 								// -------------------------------------------------------
-								String sqlQuery = map.buildSQLQuerySaturation(properties, schema, listParentTables.get(0), r2);
+								String sqlQuery = map.buildSQLQuerySaturation(this, properties, schema, listParentTables.get(0), r2);
 
 								// Assume that first field is the key (for subjectMap value)
 								gateway.getColumnsFromSQLQuery(properties, databaseName, sqlQuery, graph8, graph9, graph10);
@@ -1212,51 +1233,56 @@ public class R2RMLProcess {
 
 				gateway.getConstraintsFromTableName(properties, listParentTables
 						, listDataTypes, listColumnKeys, listReferencedColumnNames, schema, r2);
+				String leftTable = "";
 				for (int i=0; i < listParentTables.size(); i++) {
 					//String pk = graph3.get(i);
-					// Creates a new predicateObjectMap and objectMap
-					predicateObjectMap = new R2RMLPredicateObjectMap();
-					//predicateObjectMap.predicate.add(graph3.get(i));
-					//String pred = Character.toString(graph3.get(i).charAt(0)).toUpperCase()+graph3.get(i).substring(1);
-					//String pred = Character.toString(listParentTables.get(i).charAt(0)).toUpperCase()+listParentTables.get(i).substring(1);
-					String pred = Character.toString(listDataTypes.get(0).charAt(0)).toUpperCase()+listDataTypes.get(0).substring(1);
-					if(joinString.equals("")) {
-						//predicateObjectMap.predicate.add("<" + map.template + "/" + pred + "#" + map.checkSpaceInTemplate(graph3.get(i).toLowerCase())  + ">");
-						String newPredicate = "<" + map.template + "/" + encodeURIcomponent(pred) + "#" + encodeURIcomponent(listReferencedColumnNames.get(i))  + ">";
-						predicateObjectMap.addPredicate(newPredicate);
-					} else {
-						//predicateObjectMap.predicate.add("<" + map.template + "/" + pred + joinString + map.checkSpaceInTemplate(graph3.get(i).toLowerCase()) + ">");
-						String newPredicate = "<" + map.template + "/" + encodeURIcomponent(pred + joinString + listReferencedColumnNames.get(i)) + ">";
-						predicateObjectMap.addPredicate(newPredicate);
+					// doesn't consider if is the same left table (or it will place two joinconditions)  
+					if(!listParentTables.get(i).equals(leftTable)) {
+						leftTable = listParentTables.get(i);
+						// Creates a new predicateObjectMap and objectMap
+						predicateObjectMap = new R2RMLPredicateObjectMap();
+						//predicateObjectMap.predicate.add(graph3.get(i));
+						//String pred = Character.toString(graph3.get(i).charAt(0)).toUpperCase()+graph3.get(i).substring(1);
+						//String pred = Character.toString(listParentTables.get(i).charAt(0)).toUpperCase()+listParentTables.get(i).substring(1);
+						String pred = Character.toString(listDataTypes.get(0).charAt(0)).toUpperCase()+listDataTypes.get(0).substring(1);
+						if(joinString.equals("")) {
+							//predicateObjectMap.predicate.add("<" + map.template + "/" + pred + "#" + map.checkSpaceInTemplate(graph3.get(i).toLowerCase())  + ">");
+							String newPredicate = "<" + map.template + "/" + encodeURIcomponent(pred) + "#" + encodeURIcomponent(listReferencedColumnNames.get(i))  + ">";
+							predicateObjectMap.addPredicate(newPredicate);
+						} else {
+							//predicateObjectMap.predicate.add("<" + map.template + "/" + pred + joinString + map.checkSpaceInTemplate(graph3.get(i).toLowerCase()) + ">");
+							String newPredicate = "<" + map.template + "/" + encodeURIcomponent(pred + joinString + listReferencedColumnNames.get(i)) + ">";
+							predicateObjectMap.addPredicate(newPredicate);
+						}
+						//predicateObjectMap.predicate.add(map.prefix.get(map.indexPrefixSchema).prefix + ":" + pred);
+						//predicateObjectMap.predicate.add(map.prefix.get(map.indexPrefixSchema).prefix + ":" + graph3.get(i));
+						objectMap = new R2RMLObjectMap();
+						objectMap.column = "";
+						
+						// the join condition must be placed on the left table - NOT USED HERE, but in print
+						id = map.find_id(listParentTables.get(i));
+						objectMap.parentTripleMap = "<#TriplesMap" + String.valueOf(id) + ">";
+						
+						gateway.getKeysFromConstraint(properties, graph8, graph9, graph10, schema, listColumnKeys.get(i));
+						for(String kc: graph8) {
+							int k = graph8.indexOf(kc);
+							objectMap.joinCondition.add(new R2RMLJoinCondition(kc, graph10.get(k), "# " + listColumnKeys.get(i))); // It was changed for 1xN, just following the wave...
+							//objectMap.joinCondition.add(new R2RMLJoinCondition(graph10.get(k), kc, "# " + graph4.get(i))); 
+						}
+						
+						//objectMap.joinCondition = new R2RMLJoinCondition(graph3.get(i), graph3.get(i));
+						/* Adding objectMap to predicateObjectMap */
+						predicateObjectMap.objectMap.add(objectMap);
+						predicateObjectMap.comments.add("# " + listParentTables.get(i));
+						
+						// Find the tripleMap that holds the left relation
+						//triplesMap = map.find(graph2.get(i).toUpperCase());
+						//triplesMap = map.find(graph2.get(i));
+						// Join conditions must be placed on the right table
+						triplesMap = map.find(r2);
+						/* Adding each predicateObjectMap to the triplesMap */
+						triplesMap.predicateObjectMap.add(predicateObjectMap);
 					}
-					//predicateObjectMap.predicate.add(map.prefix.get(map.indexPrefixSchema).prefix + ":" + pred);
-					//predicateObjectMap.predicate.add(map.prefix.get(map.indexPrefixSchema).prefix + ":" + graph3.get(i));
-					objectMap = new R2RMLObjectMap();
-					objectMap.column = "";
-					
-					// the join condition must be placed on the left table - NOT USED HERE, but in print
-					id = map.find_id(listParentTables.get(i));
-					objectMap.parentTripleMap = "<#TriplesMap" + String.valueOf(id) + ">";
-					
-					gateway.getKeysFromConstraint(properties, graph8, graph9, graph10, schema, listColumnKeys.get(i));
-					for(String kc: graph8) {
-						int k = graph8.indexOf(kc);
-						objectMap.joinCondition.add(new R2RMLJoinCondition(kc, graph10.get(k), "# " + listColumnKeys.get(i))); // It was changed for 1xN, just following the wave...
-						//objectMap.joinCondition.add(new R2RMLJoinCondition(graph10.get(k), kc, "# " + graph4.get(i))); 
-					}
-					
-					//objectMap.joinCondition = new R2RMLJoinCondition(graph3.get(i), graph3.get(i));
-					/* Adding objectMap to predicateObjectMap */
-					predicateObjectMap.objectMap.add(objectMap);
-					predicateObjectMap.comments.add("# " + listParentTables.get(i));
-					
-					// Find the tripleMap that holds the left relation
-					//triplesMap = map.find(graph2.get(i).toUpperCase());
-					//triplesMap = map.find(graph2.get(i));
-					// Join conditions must be placed on the right table
-					triplesMap = map.find(r2);
-					/* Adding each predicateObjectMap to the triplesMap */
-					triplesMap.predicateObjectMap.add(predicateObjectMap);
 				}
 				
 				// -------------------------------------------------------
@@ -1570,9 +1596,15 @@ public class R2RMLProcess {
 		commandException = "";
 
 		// Preliminar commands
-		gateway.generalCommand(properties, dbName, "SET NAMES utf8;");
-		gateway.generalCommand(properties, dbName, "SET SQL_MODE='NO_AUTO_VALUE_ON_ZERO';");
-		gateway.generalCommand(properties, dbName, "SET FOREIGN_KEY_CHECKS=0;");
+		if(properties.getProperty("driver").equals("MySQL")) {
+			gateway.generalCommand(properties, dbName, "SET NAMES utf8;");
+			gateway.generalCommand(properties, dbName, "SET SQL_MODE='NO_AUTO_VALUE_ON_ZERO';");
+			gateway.generalCommand(properties, dbName, "SET FOREIGN_KEY_CHECKS=0;");
+		}
+		if(properties.getProperty("driver").equals("PostgreSQL")) {
+			gateway.generalCommand(properties, dbName, "BEGIN;");
+			
+		}
 		
 		// Execute commands from schema
 		String newcontent = extractComments(schemaContent);
@@ -1596,18 +1628,29 @@ public class R2RMLProcess {
 	    			(t.contains("ALTER") && t.contains("TABLE")) || 
 	    			(t.contains("CREATE") && t.contains("VIEW")) || 
 	    			t.contains("FOREIGN_KEY_CHECKS") ||
-	    			//t.contains("INSERT INTO") ||  // Watch out!!!
+	    			t.contains("INSERT INTO") ||  // Watch out!!!
 	    			t.contains("SET NAMES")
 	    		) {
 	    		commandException = t.trim();
-    		gateway.generalCommand(properties, dbName, t + ";");
+
+	    		gateway.generalCommand(properties, dbName, t + ";");
+
 	    	}
 		}
 		// it's possible to there's no SQL exceptions
 		commandException = "";
 
 		// Update schema temporary name
-		schema = dbName;
+		//schema = dbName;
+		
+		// Postliminar commands
+		if(properties.getProperty("driver").equals("MySQL")) {
+			
+		}
+		if(properties.getProperty("driver").equals("PostgreSQL")) {
+			gateway.generalCommand(properties, dbName, "END;");
+		}
+		
 		
 	}
 	
@@ -1618,7 +1661,7 @@ public class R2RMLProcess {
 		IGateway gateway = new Gateway();
 
 		// Delete database
-		gateway.dropDatabaseFromSchema(properties, dbName);
+		//gateway.dropDatabaseFromSchema(properties, dbName);
 		
 	}
 

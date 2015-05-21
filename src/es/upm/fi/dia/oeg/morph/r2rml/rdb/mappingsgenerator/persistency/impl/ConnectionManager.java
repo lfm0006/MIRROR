@@ -100,18 +100,20 @@ public class ConnectionManager {
             Properties props = new Properties();
             props.put("user", usuario);
             props.put("password", senha);
-            props.put("characterEncoding", characterencoding);
-            props.put("characterSetResults", "UTF-8");
-            props.put("useUnicode", "yes");
+            //props.put("characterEncoding", characterencoding);
+            //props.put("characterSetResults", "UTF-8");
+            //props.put("useUnicode", "yes");
+            props.put("database", database);
         	
             if(DBindex != 2)
 //               return DriverManager.getConnection(fullURL, usuario, senha);
-                return DriverManager.getConnection(url, props);
+                //return DriverManager.getConnection(url, props);
+                return DriverManager.getConnection(fullURL, props);
             else
                return DriverManager.getConnection(fullURL);
             	
         } catch (SQLException exc) {
-            StringBuffer mensagem = new StringBuffer("Didn't possible to establish connection!");
+            StringBuffer mensagem = new StringBuffer("Can't establish a connection!");
             mensagem.append("\nError Message: " + exc.getMessage());
             throw new R2RMLException(mensagem.toString());
         }
@@ -126,7 +128,7 @@ public class ConnectionManager {
                return DriverManager.getConnection(url + DBname);
             	
         } catch (SQLException exc) {
-            StringBuffer mensagem = new StringBuffer("Não foi possível estabelecer conexão nomeada com banco de dados");
+            StringBuffer mensagem = new StringBuffer("Can't establish a connection with database!");
             mensagem.append("\nMotivo: " + exc.getMessage());
             throw new R2RMLException(mensagem.toString());
         }
