@@ -220,23 +220,41 @@ public class Gateway implements IGateway {
 		"AND CONSTRAINT_NAME = ?",
 		// PostgreSQL
 		"SELECT DISTINCT "+
-		"c.column_name AS COLUMN_NAME, "+ 
-		"ccu.table_name AS REFERENCED_TABLE_NAME, "+ 
-		//"kcu.column_name AS REFERENCED_COLUMN_NAME, "+
-		"ccu.column_name AS REFERENCED_COLUMN_NAME, "+
+		"kcu.column_name AS COLUMN_NAME, "+ 
+		"sel.table_name AS REFERENCED_TABLE_NAME, "+ 
+		"sel.column_name AS REFERENCED_COLUMN_NAME, "+ 
 		"kcu.ordinal_position AS ORDINAL_POSITION "+
-		"FROM information_schema.table_constraints AS tc "+ 
-		"JOIN information_schema.key_column_usage AS kcu "+
-		"ON tc.constraint_name = kcu.constraint_name "+
-		"JOIN information_schema.constraint_column_usage AS ccu "+
-		"ON ccu.constraint_name = tc.constraint_name "+
-		"JOIN information_schema.columns AS c "+
-		"ON (c.column_name = kcu.column_name) AND (c.table_name = tc.table_name) "+
-		"WHERE constraint_type = 'FOREIGN KEY' "+
-		"AND tc.table_catalog = ? "+
-		"AND tc.table_schema = 'public' "+
-		"AND tc.constraint_name = ? "+
-		"ORDER BY kcu.ordinal_position",
+		"FROM (information_schema.key_column_usage AS kcu "+ 
+		"JOIN "+ 
+		"(SELECT row_number() OVER() AS rownum, * "+
+		"FROM information_schema.constraint_column_usage AS ccu "+
+		"WHERE ccu.table_catalog = ? "+
+		"AND ccu.table_schema = 'public' "+
+		"AND ccu.constraint_name= ? "+
+		") AS sel "+
+		"ON rownum = kcu.ordinal_position "+
+		"AND sel.constraint_name=kcu.constraint_name) "+
+		"JOIN information_schema.columns AS C "+
+		"ON c.column_name=kcu.column_name "+
+		"ORDER BY ORDINAL_POSITION ",
+		//"SELECT DISTINCT "+
+		//"c.column_name AS COLUMN_NAME, "+ 
+		//"ccu.table_name AS REFERENCED_TABLE_NAME, "+ 
+		//"kcu.column_name AS REFERENCED_COLUMN_NAME, "+
+		////"ccu.column_name AS REFERENCED_COLUMN_NAME, "+
+		//"kcu.ordinal_position AS ORDINAL_POSITION "+
+		//"FROM information_schema.table_constraints AS tc "+ 
+		//"JOIN information_schema.key_column_usage AS kcu "+
+		//"ON tc.constraint_name = kcu.constraint_name "+
+		//"JOIN information_schema.constraint_column_usage AS ccu "+
+		//"ON ccu.constraint_name = tc.constraint_name "+
+		//"JOIN information_schema.columns AS c "+
+		//"ON (c.column_name = kcu.column_name) AND (c.table_name = tc.table_name) "+
+		//"WHERE constraint_type = 'FOREIGN KEY' "+
+		//"AND tc.table_catalog = ? "+
+		//"AND tc.table_schema = 'public' "+
+		//"AND tc.constraint_name = ? "+
+		//"ORDER BY kcu.ordinal_position",
 		// SQL Server
 		"SELECT "+ 
 		"COL_NAME(fc.parent_object_id,fc.parent_column_id) column_name, "+
@@ -486,7 +504,8 @@ public class Gateway implements IGateway {
 		// PostgreSQL
 		"SELECT DISTINCT "+
 		"ccu.table_name AS PARENT, "+
-		"c.column_name AS PK, "+
+		"ccu.column_name AS PK, "+
+		//"kcu.column_name AS PK, "+
 		"tc.table_name AS CHILD, "+
 		"kcu.column_name AS FK, "+
 		"c.is_nullable AS NULLABLE, "+ 
@@ -1068,8 +1087,8 @@ public class Gateway implements IGateway {
 			}
 			if(properties.getProperty("driver").equals("PostgreSQL")) {
 				con.setAutoCommit(true);
-				stmt.executeUpdate(command);
-		}
+			}
+			stmt.executeUpdate(command);
 
 		} catch (SQLException exc) {
 			StringBuffer mensagem = new StringBuffer("Unable to execute SQL general command.");
@@ -1099,6 +1118,7 @@ public class Gateway implements IGateway {
 			con = ConnectionManager.getConnectionDB(database, DBname, properties);
 			stmt = con.createStatement();
 			//stmt.executeUpdate("SET FOREIGN_KEY_CHECKS=0;");
+			VerboseMode.verbose(query, VerboseMode.VERBOSE_SQL);
 			rs = stmt.executeQuery(query);
 			rsmd = rs.getMetaData();
 			countColumns = rsmd.getColumnCount();
@@ -1114,8 +1134,8 @@ public class Gateway implements IGateway {
 
 		} catch (SQLException exc) {
 			StringBuffer mensagem = new StringBuffer("Unable to execute SQL query");
-			mensagem.append("\nCause: " + exc.getMessage());
-			throw new R2RMLException(mensagem.toString());
+			//mensagem.append("\nCause: " + exc.getMessage());
+			//throw new R2RMLException(mensagem.toString());
 		} finally {
 			ConnectionManager.closeConnection(con);
 		}

@@ -155,6 +155,7 @@ public class R2RMLMapper {
 			// default is all (data + onto)
 			p.triplesMapMode = 3;
 		}
+		
 		if(properties.getProperty("showviews") != null) {
 			p.showViews = Boolean.valueOf(properties.getProperty("showviews"));
 		} else { 
@@ -162,6 +163,13 @@ public class R2RMLMapper {
 			p.showViews = false;
 		}
 
+		if(properties.getProperty("firstcharcase") != null) {
+			p.firstCharCase = Byte.valueOf(properties.getProperty("firstcharcase"));
+		} else { 
+			// default is all (data + onto)
+			p.firstCharCase = 0;
+		}
+		
 		int len;
 
 		try {

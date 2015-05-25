@@ -101,6 +101,8 @@ public class R2RMLProcess {
 	public byte triplesMapMode; // triples map for data, ontologies or all
 
 	public boolean showViews; // option for showing views 
+
+	public byte firstCharCase; // first char case (for class names)
 	
 	R2RMLMap map = new R2RMLMap();
 
@@ -600,7 +602,8 @@ public class R2RMLProcess {
 					}
 					//subjectMap.template = map.template + "/" + graph2.get(0) + "/{" + graph5.get(0) + "}";
 					//subjectMap.classSubjectMap = graph2.get(0);
-					subjectMap.classSubjectMap = Character.toString(listParentTables.get(0).charAt(0)).toUpperCase()+listParentTables.get(0).substring(1);
+					
+					subjectMap.classSubjectMap = getFirstCharCaseName(listParentTables.get(0));
 					subjectMap.term = "rr:IRI";
 					/* Adding subjectMap to the triplesMap */
 					triplesMap.subjectMap = subjectMap;
@@ -647,7 +650,7 @@ public class R2RMLProcess {
 					// owl:DatatypeProperty (constant)
 					// -------------------------------------------------------
 					for (String c : graph8) {
-						String tab0 = Character.toString(listParentTables.get(0).charAt(0)).toUpperCase()+listParentTables.get(0).substring(1);
+						String tab0 = getFirstCharCaseName(listParentTables.get(0));
 						map.addOwlDatatypeProperty(tab0, c, graph9.get(graph8.indexOf(c)));
 					}
 					
@@ -665,7 +668,8 @@ public class R2RMLProcess {
 				// -------------------------------------------------------
 				// owl:Class
 				// -------------------------------------------------------
-				String table = Character.toString(listParentTables.get(0).charAt(0)).toUpperCase()+listParentTables.get(0).substring(1);
+				//String table = Character.toString(listParentTables.get(0).charAt(0)).toUpperCase()+listParentTables.get(0).substring(1);
+				String table = getFirstCharCaseName(listParentTables.get(0));
 				map.addOwlClass(table);
 				
 				// ------------------------------------------------------------------------------------------------
@@ -695,8 +699,10 @@ public class R2RMLProcess {
 							databaseName = schema; 
 						}
 						// Check if there is data in database schema
-						long nreg = gateway.countRecordsFromRelationship(properties, databaseName, listParentTables.get(0), r2, listDataTypes.get(0).toUpperCase(), listReferencedTableNames.get(0).toUpperCase());
-						if((nreg > 0) && gateway.checkRelationship1x1(properties, databaseName, listParentTables.get(0), r2, listDataTypes.get(0).toUpperCase(), listReferencedTableNames.get(0).toUpperCase()) 
+						//long nreg = gateway.countRecordsFromRelationship(properties, databaseName, listParentTables.get(0), r2, listDataTypes.get(0).toUpperCase(), listReferencedTableNames.get(0).toUpperCase());
+						long nreg = gateway.countRecordsFromRelationship(properties, databaseName, listParentTables.get(0), r2, listDataTypes.get(0), listReferencedTableNames.get(0));
+						//if((nreg > 0) && gateway.checkRelationship1x1(properties, databaseName, listParentTables.get(0), r2, listDataTypes.get(0).toUpperCase(), listReferencedTableNames.get(0).toUpperCase()) 
+						if((nreg > 0) && gateway.checkRelationship1x1(properties, databaseName, listParentTables.get(0), r2, listDataTypes.get(0), listReferencedTableNames.get(0)) 
 								|| gateway.checkRelationshipISA(properties, databaseName, listParentTables.get(0), r2)) {
 
 								// child will be saturated
@@ -765,7 +771,7 @@ public class R2RMLProcess {
 						}
 					}
 
-					subjectMap.classSubjectMap = Character.toString(r2.charAt(0)).toUpperCase()+r2.substring(1);
+					subjectMap.classSubjectMap = getFirstCharCaseName(r2);
 					subjectMap.term = "rr:IRI";
 					
 					/* Adding subjectMap to the triplesMap */
@@ -784,7 +790,7 @@ public class R2RMLProcess {
 						cPredicateObjectMap.addPredicate("rdf:type");
 						
 						R2RMLObjectMap cObjectMap = new R2RMLObjectMap();
-						String pred = Character.toString(listParentTables.get(0).charAt(0)).toUpperCase()+listParentTables.get(0).substring(1);
+						String pred = getFirstCharCaseName(listParentTables.get(0));
 						cObjectMap.column = "[ rr:constant <" + map.template + "/" + encodeURIcomponent(pred) + "> ]";
 
 						//predicateObjectMap.predicate.add(c.toLowerCase());
@@ -835,7 +841,7 @@ public class R2RMLProcess {
 					gateway.getColumnsFromTableName(properties, graph8, graph9, graph10, schema, listParentTables.get(0));
 
 					for (String c : graph8) {
-						String tab0 = Character.toString(listParentTables.get(0).charAt(0)).toUpperCase()+listParentTables.get(0).substring(1);
+						String tab0 = getFirstCharCaseName(listParentTables.get(0));
 						map.addOwlDatatypeProperty(tab0, c, graph9.get(graph8.indexOf(c)));
 					}
 					
@@ -846,8 +852,8 @@ public class R2RMLProcess {
 					// -------------------------------------------------------
 					// owl:Class
 					// -------------------------------------------------------
-					table = Character.toString(r2.charAt(0)).toUpperCase()+r2.substring(1);
-					String superTable = Character.toString(listParentTables.get(0).charAt(0)).toUpperCase()+listParentTables.get(0).substring(1);
+					table = getFirstCharCaseName(r2);
+					String superTable = getFirstCharCaseName(listParentTables.get(0));
 					if(!tableSaturated) {
 						map.addOwlClass(table);
 					} else {
@@ -861,7 +867,7 @@ public class R2RMLProcess {
 					// -------------------------------------------------------
 					
 					for (String c : graph8) {
-						String tab0 = Character.toString(r2.charAt(0)).toUpperCase()+r2.substring(1);
+						String tab0 = getFirstCharCaseName(r2);
 						map.addOwlDatatypeProperty(tab0, c, graph9.get(graph8.indexOf(c)));
 					}
 
@@ -884,7 +890,8 @@ public class R2RMLProcess {
 
 					predicateObjectMap = new R2RMLPredicateObjectMap();
 					//predicateObjectMap.predicate.add(graph4.get(0));
-					String pred = Character.toString(listColumnKeys.get(0).charAt(0)).toUpperCase()+listColumnKeys.get(0).substring(1);
+					//String pred = Character.toString(listColumnKeys.get(0).charAt(0)).toUpperCase()+listColumnKeys.get(0).substring(1);
+					String pred = getFirstCharCaseName(listColumnKeys.get(0));
 					//String pred = Character.toString(listTableNames.get(0).charAt(0)).toUpperCase()+listTableNames.get(0).substring(1);
 					String newPredicate;
 					if(joinString.equals("")) {
@@ -932,8 +939,10 @@ public class R2RMLProcess {
 				gateway.getRelationshipsFromTableDetailed(properties, listParentTables, listDataTypes
 						, listColumnKeys, listReferencedTableNames, graph6, listTableTypes, schema, r2);
 
-				String tab0 = Character.toString(listParentTables.get(0).charAt(0)).toUpperCase()+listParentTables.get(0).substring(1);
-				String tab1 = Character.toString(r2.charAt(0)).toUpperCase()+r2.substring(1);
+				//String tab0 = Character.toString(listParentTables.get(0).charAt(0)).toUpperCase()+listParentTables.get(0).substring(1);
+				String tab0 = getFirstCharCaseName(listParentTables.get(0));
+				//String tab1 = Character.toString(r2.charAt(0)).toUpperCase()+r2.substring(1);
+				String tab1 = getFirstCharCaseName(r2);
 
 				// Doesn't add object property if the table is the same
 				if(!tab0.equals(tab1)) {
@@ -1012,7 +1021,8 @@ public class R2RMLProcess {
 						}
 						
 						//subjectMap.classSubjectMap = graph2.get(i);
-						subjectMap.classSubjectMap = Character.toString(listParentTables.get(i).charAt(0)).toUpperCase()+listParentTables.get(i).substring(1);
+						//subjectMap.classSubjectMap = Character.toString(listParentTables.get(i).charAt(0)).toUpperCase()+listParentTables.get(i).substring(1);
+						subjectMap.classSubjectMap = getFirstCharCaseName(listParentTables.get(i));
 						subjectMap.term = "rr:IRI";
 						/* Adding subjectMap to the triplesMap */
 						triplesMap.subjectMap = subjectMap;
@@ -1068,14 +1078,16 @@ public class R2RMLProcess {
 						// owl:DatatypeProperty (constant)
 						// -------------------------------------------------------
 						for (String c : graph8) {
-							String tab0 = Character.toString(listParentTables.get(i).charAt(0)).toUpperCase()+listParentTables.get(i).substring(1);
+							//String tab0 = Character.toString(listParentTables.get(i).charAt(0)).toUpperCase()+listParentTables.get(i).substring(1);
+							String tab0 = getFirstCharCaseName(listParentTables.get(i));
 							map.addOwlDatatypeProperty(tab0, c, graph9.get(graph8.indexOf(c)));
 						}
 						
 						// -------------------------------------------------------
 						// owl:Class
 						// -------------------------------------------------------
-						String table = Character.toString(listParentTables.get(i).charAt(0)).toUpperCase()+listParentTables.get(i).substring(1);
+						//String table = Character.toString(listParentTables.get(i).charAt(0)).toUpperCase()+listParentTables.get(i).substring(1);
+						String table = getFirstCharCaseName(listParentTables.get(i));
 						map.addOwlClass(table);
 						
 					}
@@ -1132,7 +1144,8 @@ public class R2RMLProcess {
 						//subjectMap.template = "http://data.example.com/" + r2 + "/{" + graph3.get(0) + "};";
 					}
 					//subjectMap.classSubjectMap = r2;
-					subjectMap.classSubjectMap = Character.toString(r2.charAt(0)).toUpperCase()+r2.substring(1);
+					//subjectMap.classSubjectMap = Character.toString(r2.charAt(0)).toUpperCase()+r2.substring(1);
+					subjectMap.classSubjectMap = getFirstCharCaseName(r2);
 					subjectMap.term = "rr:IRI";
 
 					triplesMap.comments.add("#");
@@ -1206,7 +1219,8 @@ public class R2RMLProcess {
 						// owl:DatatypeProperty (constant)
 						// -------------------------------------------------------
 						for (String c : graph8) {
-							String tab0 = Character.toString(r2.charAt(0)).toUpperCase()+r2.substring(1);
+							//String tab0 = Character.toString(r2.charAt(0)).toUpperCase()+r2.substring(1);
+							String tab0 = getFirstCharCaseName(r2);
 							map.addOwlDatatypeProperty(tab0, c, graph9.get(graph8.indexOf(c)));
 						}
 						
@@ -1217,7 +1231,8 @@ public class R2RMLProcess {
 					// -------------------------------------------------------
 					// owl:Class
 					// -------------------------------------------------------
-					String table = Character.toString(r2.charAt(0)).toUpperCase()+r2.substring(1);
+					//String table = Character.toString(r2.charAt(0)).toUpperCase()+r2.substring(1);
+					String table = getFirstCharCaseName(r2);
 					map.addOwlClass(table);
 					
 				}				
@@ -1244,7 +1259,8 @@ public class R2RMLProcess {
 						//predicateObjectMap.predicate.add(graph3.get(i));
 						//String pred = Character.toString(graph3.get(i).charAt(0)).toUpperCase()+graph3.get(i).substring(1);
 						//String pred = Character.toString(listParentTables.get(i).charAt(0)).toUpperCase()+listParentTables.get(i).substring(1);
-						String pred = Character.toString(listDataTypes.get(0).charAt(0)).toUpperCase()+listDataTypes.get(0).substring(1);
+						//String pred = Character.toString(listDataTypes.get(0).charAt(0)).toUpperCase()+listDataTypes.get(0).substring(1);
+						String pred = getFirstCharCaseName(listDataTypes.get(0));
 						if(joinString.equals("")) {
 							//predicateObjectMap.predicate.add("<" + map.template + "/" + pred + "#" + map.checkSpaceInTemplate(graph3.get(i).toLowerCase())  + ">");
 							String newPredicate = "<" + map.template + "/" + encodeURIcomponent(pred) + "#" + encodeURIcomponent(listReferencedColumnNames.get(i))  + ">";
@@ -1306,8 +1322,10 @@ public class R2RMLProcess {
 						tables.add(st.nextToken());
 					}
 					
-					String tab0 = Character.toString(tables.get(0).charAt(0)).toUpperCase()+tables.get(0).substring(1);
-					String tab1 = Character.toString(tables.get(1).charAt(0)).toUpperCase()+tables.get(1).substring(1);
+					//String tab0 = Character.toString(tables.get(0).charAt(0)).toUpperCase()+tables.get(0).substring(1);
+					String tab0 = getFirstCharCaseName(tables.get(0));
+					//String tab1 = Character.toString(tables.get(1).charAt(0)).toUpperCase()+tables.get(1).substring(1);
+					String tab1 = getFirstCharCaseName(tables.get(1));
 
 					// Doesn't add object property if the table is the same
 					if(!tab0.equals(tab1)) {
@@ -1325,8 +1343,10 @@ public class R2RMLProcess {
 						
 						int indexDomain = listParentTables.indexOf(tables.get(0));
 						int indexRange = listParentTables.indexOf(tables.get(1));
-						tab0 = Character.toString(tables.get(0).charAt(0)).toUpperCase()+tables.get(0).substring(1);
-	 					tab1 = Character.toString(tables.get(1).charAt(0)).toUpperCase()+tables.get(1).substring(1);
+						//tab0 = Character.toString(tables.get(0).charAt(0)).toUpperCase()+tables.get(0).substring(1);
+						tab0 = getFirstCharCaseName(tables.get(0));
+	 					//tab1 = Character.toString(tables.get(1).charAt(0)).toUpperCase()+tables.get(1).substring(1);
+	 					tab1 = getFirstCharCaseName(tables.get(1));
 
 	 					//addOwlObjectPropertyData(String tableDomain, String columnDomain, String tableRange, String columnRange, String sqlQuery) {
 	 					String tableDomain = tab0;
@@ -1419,7 +1439,8 @@ public class R2RMLProcess {
 				//subjectMap.template = map.template + "/" + t + "/{" + graph12.get(0) + "}";
 				//subjectMap.classSubjectMap = graph2.get(0);
 				//subjectMap.classSubjectMap = map.checkSpaceInTemplate(Character.toString(t.charAt(0)).toUpperCase()+t.substring(1));
-				subjectMap.classSubjectMap = Character.toString(t.charAt(0)).toUpperCase()+t.substring(1);
+				//subjectMap.classSubjectMap = Character.toString(t.charAt(0)).toUpperCase()+t.substring(1);
+				subjectMap.classSubjectMap = getFirstCharCaseName(t);
 				/* Adding subjectMap to the triplesMap */
 				triplesMap.subjectMap = subjectMap;
 
@@ -1464,14 +1485,16 @@ public class R2RMLProcess {
 				// -------------------------------------------------------
 				// owl:Class
 				// -------------------------------------------------------
-				String table = Character.toString(t.charAt(0)).toUpperCase()+t.substring(1);
+				//String table = Character.toString(t.charAt(0)).toUpperCase()+t.substring(1);
+				String table = getFirstCharCaseName(t);
 				map.addOwlClass(table);
 				
 				// -------------------------------------------------------
 				// owl:DatatypeProperty (constant)
 				// -------------------------------------------------------
 				for (String c : graph12) {
-					String tab0 = Character.toString(t.charAt(0)).toUpperCase()+t.substring(1);
+					//String tab0 = Character.toString(t.charAt(0)).toUpperCase()+t.substring(1);
+					String tab0 = getFirstCharCaseName(t);
 					map.addOwlDatatypeProperty(tab0, c, graph13.get(graph12.indexOf(c)));
 				}	
 			}
@@ -1524,7 +1547,8 @@ public class R2RMLProcess {
 					
 					//subjectMap.template = map.template + "/" + t + "/{" + graph12.get(0) + "}";
 					//subjectMap.classSubjectMap = graph2.get(0);
-					subjectMap.classSubjectMap = Character.toString(t.charAt(0)).toUpperCase()+t.substring(1);
+					//subjectMap.classSubjectMap = Character.toString(t.charAt(0)).toUpperCase()+t.substring(1);
+					subjectMap.classSubjectMap = getFirstCharCaseName(t);
 					/* Adding subjectMap to the triplesMap */
 					triplesMap.subjectMap = subjectMap;
 
@@ -1560,7 +1584,8 @@ public class R2RMLProcess {
 					// -------------------------------------------------------
 					// owl:Class
 					// -------------------------------------------------------
-					String table = Character.toString(t.charAt(0)).toUpperCase()+t.substring(1);
+					//String table = Character.toString(t.charAt(0)).toUpperCase()+t.substring(1);
+					String table = getFirstCharCaseName(t);
 					map.addOwlClass(table);
 				}
 			}
@@ -1661,7 +1686,7 @@ public class R2RMLProcess {
 		IGateway gateway = new Gateway();
 
 		// Delete database
-		//gateway.dropDatabaseFromSchema(properties, dbName);
+		gateway.dropDatabaseFromSchema(properties, dbName);
 		
 	}
 
@@ -1724,4 +1749,20 @@ public class R2RMLProcess {
 	    //return " %$&+,/:;=?@<>#%".indexOf(ch) >= 0;
 	    return " %$&+,/:;=?@<>%".indexOf(ch) >= 0;
 	}
+	
+	private String getFirstCharCaseName(String oldName) {
+		String newName = "";
+		switch(firstCharCase) {
+			case 0:
+				newName = oldName;
+				break;
+			case 1:
+				newName = Character.toString(oldName.charAt(0)).toUpperCase()+oldName.substring(1);
+				break;
+		}
+		return newName; 
+	}
+	
+	
+	
 }

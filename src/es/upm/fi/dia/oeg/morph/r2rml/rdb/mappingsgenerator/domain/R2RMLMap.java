@@ -387,7 +387,7 @@ public class R2RMLMap {
 		cObjectMap = new R2RMLObjectMap();
 		//pred = Character.toString(tables.get(1).charAt(0)).toUpperCase()+tables.get(1).substring(1) + "BelongsTo" +
 		//	   Character.toString(tables.get(0).charAt(0)).toUpperCase()+tables.get(0).substring(1);
-		String pred = tableRange + "has" + tableDomain;
+		String pred = tableRange + "Has" + tableDomain;
 		//pred = tab1 + "BelongsTo" + tab0;
 		cObjectMap.column = "[ rr:constant <" + this.template + "/" + R2RMLProcess.encodeURIcomponent(pred) + "> ]";
 
@@ -403,7 +403,7 @@ public class R2RMLMap {
 		R2RMLTriplesMap triplesMap;
 		
 		triplesMap = new R2RMLTriplesMap(this, R2RMLTriplesMap.TM_ONTO);
-		String objectPropertyName = tableRange + "has" + tableDomain;
+		String objectPropertyName = tableRange + "Has" + tableDomain;
 
 		triplesMap.comments.add("#");
 		triplesMap.comments.add("# inverseOf: " + objectPropertyName);
@@ -670,6 +670,18 @@ public class R2RMLMap {
 			}
 		}
 
+		// For the case of PK = FK (graph10 isn't "MUL")
+		if(joinChildPK.isEmpty()) {
+			for(int k=columnName.size()-1; k>=0; k--) {
+				if(columnKey.get(k).equals("PRIMARY KEY")) {
+					// Add field join to the list
+					//joinChildPK.add(r2 + "." + graph8.get(k));
+					//joinChildPK.add(aliasChild + ".`" + columnName.get(k) + "`");
+					joinChildPK.add(aliasChild + "." + escape + columnName.get(k) + escape);
+				}
+			}
+		}
+
 		// Get the parent fields
 		try {
 			gateway.getColumnsFromTableName(fileProperties, columnName, dataType, columnKey, schema, tableParent);
@@ -701,18 +713,6 @@ public class R2RMLMap {
 		}
 		sqlFields = sqlFields.substring(0, sqlFields.length()-2);
 
-		// For the case of PK = FK (graph10 isn't "MUL")
-		if(joinChildPK.isEmpty()) {
-			for(int k=columnName.size()-1; k>=0; k--) {
-				if(columnKey.get(k).equals("PRIMARY KEY")) {
-					// Add field join to the list
-					//joinChildPK.add(r2 + "." + graph8.get(k));
-					//joinChildPK.add(aliasChild + ".`" + columnName.get(k) + "`");
-					joinChildPK.add(aliasChild + "." + escape + columnName.get(k) + escape);
-				}
-			}
-		}
-		
 		// Build the join string
 		for(int k=0; k < joinParentPK.size(); k++) {
 			sqlJoin = "(" + sqlJoin + joinParentPK.get(k) + "=" + joinChildPK.get(k) + ")";
