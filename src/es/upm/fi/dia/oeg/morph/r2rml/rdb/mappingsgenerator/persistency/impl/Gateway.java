@@ -12,12 +12,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import es.upm.fi.dia.oeg.morph.r2rml.rdb.mappingsgenerator.exception.R2RMLException;
+import es.upm.fi.dia.oeg.morph.r2rml.rdb.mappingsgenerator.main.R2RMLMapper;
 import es.upm.fi.dia.oeg.morph.r2rml.rdb.mappingsgenerator.persistency.base.IGateway;
 import es.upm.fi.dia.oeg.morph.r2rml.rdb.mappingsgenerator.util.VerboseMode;
 
 public class Gateway implements IGateway {
+
+	private static final Logger log = Logger.getLogger(R2RMLMapper.class.getName());
 
 	private static int database; 
 
@@ -1136,6 +1141,7 @@ public class Gateway implements IGateway {
 			StringBuffer mensagem = new StringBuffer("Unable to execute SQL query");
 			//mensagem.append("\nCause: " + exc.getMessage());
 			//throw new R2RMLException(mensagem.toString());
+			log.log(Level.WARNING, exc.toString(), new Object[]{mensagem, query});
 		} finally {
 			ConnectionManager.closeConnection(con);
 		}
@@ -2362,31 +2368,4 @@ public class Gateway implements IGateway {
 		return "?";
 	}
 
-	// Methods exclusive for PostgreSQL 
-	public void refreshDatabase(Properties properties, String DBname) throws R2RMLException {
-		Connection con = null;
-		Statement stmt = null;
-
-		VerboseMode.verbose("refreshDatabase", VerboseMode.VERBOSE_SQL);
-
-		// Get 
-		if(properties.getProperty("driver").equals("PostgreSQL")) {
-			try {
-				con = ConnectionManager.getConnectionDB(database, DBname, properties);
-				stmt = con.createStatement();
-			//stmt.executeUpdate(command);
-		
-			} catch (SQLException exc) {
-				StringBuffer mensagem = new StringBuffer("Unable to execute SQL refresh command.");
-				mensagem.append("\nMotive: " + exc.getMessage());
-				throw new R2RMLException(mensagem.toString());
-			} finally {
-				ConnectionManager.closeConnection(con);
-			}
-		}
-
-	
-	}
-	
-	
 }

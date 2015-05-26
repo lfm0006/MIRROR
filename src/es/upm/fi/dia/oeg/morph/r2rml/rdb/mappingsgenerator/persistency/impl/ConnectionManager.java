@@ -58,8 +58,8 @@ public class ConnectionManager {
             
             Class.forName(driver);
         } catch(ClassNotFoundException exc) {
-            StringBuffer mensagem = new StringBuffer("Não foi possível conectar com banco de dados");
-            mensagem.append("\nMotivo: " + exc.getMessage());
+            StringBuffer mensagem = new StringBuffer("Can't connect with database");
+            mensagem.append("\nMotive: " + exc.getMessage());
             throw new R2RMLException(mensagem.toString());
         }
 
@@ -75,8 +75,8 @@ public class ConnectionManager {
                return DriverManager.getConnection(url);
             	
         } catch (SQLException exc) {
-            StringBuffer mensagem = new StringBuffer("Não foi possível estabelecer conexão para criação de BD");
-            mensagem.append("\nMotivo: " + exc.getMessage());
+            StringBuffer mensagem = new StringBuffer("Can't establish a connection for database creation");
+            mensagem.append("\nMotive: " + exc.getMessage());
             throw new R2RMLException(mensagem.toString());
         }
     }
@@ -113,8 +113,8 @@ public class ConnectionManager {
                return DriverManager.getConnection(fullURL);
             	
         } catch (SQLException exc) {
-            StringBuffer mensagem = new StringBuffer("Can't establish a connection!");
-            mensagem.append("\nError Message: " + exc.getMessage());
+            StringBuffer mensagem = new StringBuffer("Can't establish a connection");
+            mensagem.append("\nMotive: " + exc.getMessage());
             throw new R2RMLException(mensagem.toString());
         }
     }
@@ -129,7 +129,7 @@ public class ConnectionManager {
             	
         } catch (SQLException exc) {
             StringBuffer mensagem = new StringBuffer("Can't establish a connection with database!");
-            mensagem.append("\nMotivo: " + exc.getMessage());
+            mensagem.append("\nMotive: " + exc.getMessage());
             throw new R2RMLException(mensagem.toString());
         }
     }
@@ -157,8 +157,8 @@ public class ConnectionManager {
                 con.close();
             }
         } catch(SQLException exc){
-            StringBuffer mensagem = new StringBuffer("Não foi possível finalizar a conexão com banco de dados");
-            mensagem.append("\nMotivo: " + exc.getMessage());
+            StringBuffer mensagem = new StringBuffer("Can't close the database connection");
+            mensagem.append("\nMotive: " + exc.getMessage());
             throw new R2RMLException(mensagem.toString());
         }
     }

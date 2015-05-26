@@ -13,6 +13,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import es.upm.fi.dia.oeg.morph.r2rml.rdb.mappingsgenerator.control.R2RMLProcess;
 import es.upm.fi.dia.oeg.morph.r2rml.rdb.mappingsgenerator.exception.R2RMLException;
@@ -24,6 +26,8 @@ import es.upm.fi.dia.oeg.morph.r2rml.rdb.mappingsgenerator.util.VerboseMode;
  */
 public class R2RMLMapper {
 	private R2RMLProcess p = new R2RMLProcess();
+	
+	private static final Logger log = Logger.getLogger(R2RMLMapper.class.getName());
 	
 	/**
 	 * @param args
@@ -38,13 +42,16 @@ public class R2RMLMapper {
 			properties.load(arquivoDePropriedades);
 			R2RMLMapper mapper = new R2RMLMapper();
 			mapper.run(properties);
+			//log.log(Level.INFO, "End of process with success");
 		} catch (FileNotFoundException exc) {
 			StringBuffer mensagem = new StringBuffer("R2RML file properties not found");
 			mensagem.append("\nMotive: " + exc.getMessage());
+			log.log(Level.SEVERE, exc.toString(), exc);
 			throw new R2RMLException(mensagem.toString());
 		} catch(IOException exc) {
 			StringBuffer mensagem = new StringBuffer("I/O error in loading properties");
 			mensagem.append("\nMotive: " + exc.getMessage());
+			log.log(Level.SEVERE, exc.toString(), exc);
 			throw new R2RMLException(mensagem.toString());
 		}
 
@@ -176,7 +183,7 @@ public class R2RMLMapper {
 			if(p.verbose >= 1) {
 				//System.out.println("");
 				System.out.println("MIRROR: MappIng from Relational to Rdf generatOR");
-				System.out.println("v.0.3 beta");
+				System.out.println("v.0.4 beta");
 				System.out.println("---------------------------------------------------------");
 				System.out.println("");
 			}
@@ -195,9 +202,11 @@ public class R2RMLMapper {
 
 		} catch (FileNotFoundException e1) {
 			// TODO Auto-generated catch block
+			log.log(Level.SEVERE, e1.toString(), e1);
 			e1.printStackTrace();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
+			log.log(Level.SEVERE, e.toString(), e);
 			e.printStackTrace();
 		}
 		try {
@@ -251,6 +260,7 @@ public class R2RMLMapper {
 			}
 		} catch (R2RMLException e) {
 			// TODO Auto-generated catch block
+			log.log(Level.SEVERE, e.toString(), e);
 			e.printStackTrace();
 		}
 		System.out.println("Mappings generated.");

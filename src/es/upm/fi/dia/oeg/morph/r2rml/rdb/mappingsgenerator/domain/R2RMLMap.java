@@ -3,12 +3,14 @@ package es.upm.fi.dia.oeg.morph.r2rml.rdb.mappingsgenerator.domain;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.logging.Logger;
 
 import es.upm.fi.dia.oeg.morph.r2rml.rdb.mappingsgenerator.control.R2RMLProcess;
 import es.upm.fi.dia.oeg.morph.r2rml.rdb.mappingsgenerator.domain.R2RMLBase;
 import es.upm.fi.dia.oeg.morph.r2rml.rdb.mappingsgenerator.domain.R2RMLPrefix;
 import es.upm.fi.dia.oeg.morph.r2rml.rdb.mappingsgenerator.domain.R2RMLTriplesMap;
 import es.upm.fi.dia.oeg.morph.r2rml.rdb.mappingsgenerator.exception.R2RMLException;
+import es.upm.fi.dia.oeg.morph.r2rml.rdb.mappingsgenerator.main.R2RMLMapper;
 import es.upm.fi.dia.oeg.morph.r2rml.rdb.mappingsgenerator.persistency.base.IGateway;
 import es.upm.fi.dia.oeg.morph.r2rml.rdb.mappingsgenerator.persistency.impl.Gateway;
 
@@ -29,7 +31,9 @@ public class R2RMLMap {
 	public int indexPrefixSchema; // index for ex:
 
 	public static String enclosed_char = "\\" + "\"";
-	
+
+	private static final Logger log = Logger.getLogger(R2RMLMapper.class.getName());
+
 	/**
 	 * @return the filename
 	 */

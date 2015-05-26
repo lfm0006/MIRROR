@@ -76,7 +76,6 @@ public interface IGateway {
 			, List<String> listColumnNames, List<String> listDataTypes
 			, List<String> arq3, List<String> listReferencedColumnNames, String schema, String tablename) throws R2RMLException;
 
-	public void refreshDatabase(Properties properties, String DBname) throws R2RMLException;	
-
+	
 	
 }

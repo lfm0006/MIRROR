@@ -12,7 +12,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+import es.upm.fi.dia.oeg.morph.r2rml.rdb.mappingsgenerator.main.R2RMLMapper;
 import es.upm.fi.dia.oeg.morph.r2rml.rdb.mappingsgenerator.persistency.base.IGateway;
 import es.upm.fi.dia.oeg.morph.r2rml.rdb.mappingsgenerator.persistency.impl.Gateway;
 import es.upm.fi.dia.oeg.morph.r2rml.rdb.mappingsgenerator.domain.R2RMLBase;
@@ -103,6 +106,8 @@ public class R2RMLProcess {
 	public boolean showViews; // option for showing views 
 
 	public byte firstCharCase; // first char case (for class names)
+
+	private static final Logger log = Logger.getLogger(R2RMLMapper.class.getName());
 	
 	R2RMLMap map = new R2RMLMap();
 
@@ -510,6 +515,7 @@ public class R2RMLProcess {
 		map.filename = outputFile;
 
 		// Get the prefixes and base mapping IRI 
+		map.prefix.clear();
         FileInputStream arquivoDePropriedades = null;
         try {
 
@@ -560,8 +566,9 @@ public class R2RMLProcess {
 			int n = gateway.getRelationshipsFromRightTableCount(properties, schema, r2);
 
 			if(n == 0) {
-				String mensagem = "Critical error in database schema.";
-				throw new R2RMLException(mensagem);
+				String mensagem = "Wrong child table in database schema: {0}";
+				log.log(Level.WARNING, mensagem, r2);
+				//throw new R2RMLException(mensagem);
 			} else if (n == 1) {
 
 				tableSaturated = false;
