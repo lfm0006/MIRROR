@@ -105,7 +105,11 @@ public class R2RMLMapper {
 		if(p.qualifier == null) { p.qualifier = "R2RML"; }
 		
 		p.comments = Boolean.valueOf(properties.getProperty("comments"));
+		
 		p.externalSchema = Boolean.valueOf(properties.getProperty("externalschema"));
+		
+		p.SQLInsert = Boolean.valueOf(properties.getProperty("sqlinsert"));
+		
 		p.prefixedTables = Boolean.valueOf(properties.getProperty("prefixedtables"));
 
 		String compatible = properties.getProperty("compatible");
@@ -264,6 +268,7 @@ public class R2RMLMapper {
 			e.printStackTrace();
 		}
 		System.out.println("Mappings generated.");
+		System.out.println();
 	}
 	
 	public String getGeneratedMappingsFile() {

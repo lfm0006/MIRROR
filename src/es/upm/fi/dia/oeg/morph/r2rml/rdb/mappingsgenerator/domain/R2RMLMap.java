@@ -644,7 +644,7 @@ public class R2RMLMap {
 			escape = "`";
 		} else
 		if(p.driver == p.DB_POSTGRESQL) {
-			escape = Character.toString((char)34);
+			escape = '\\' + Character.toString((char)34);
 			//escape = enclosed_char;
 		}
 			

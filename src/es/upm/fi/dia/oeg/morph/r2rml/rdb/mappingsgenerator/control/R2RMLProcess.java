@@ -89,6 +89,7 @@ public class R2RMLProcess {
 
 	public int verbose = 0; // messages level: 0 - none; 1 - basic; 2 - detailed
 	public boolean externalSchema = true; // using external schema file (or database existent)
+	public boolean SQLInsert = false; // considering or not INSERT commands in processing external schemas 
 
 	//public String fileProperties; // file properties for DB connections (driver, database,...)
 	public Properties properties;
@@ -721,7 +722,14 @@ public class R2RMLProcess {
 								String sqlQuery = map.buildSQLQuerySaturation(this, properties, schema, listParentTables.get(0), r2);
 
 								// Assume that first field is the key (for subjectMap value)
-								gateway.getColumnsFromSQLQuery(properties, databaseName, sqlQuery, graph8, graph9, graph10);
+								if(this.driver == this.DB_MYSQL) {
+									gateway.getColumnsFromSQLQuery(properties, databaseName, sqlQuery, graph8, graph9, graph10);
+								} 
+								else
+								if(this.driver == this.DB_POSTGRESQL) {
+									String sqlQueryClean = sqlQuery.replace("\\", "");
+									gateway.getColumnsFromSQLQuery(properties, databaseName, sqlQueryClean, graph8, graph9, graph10);
+								}
 								
 								// Recover the information about PK
 								for(int i=0; i<graph8.size(); i++) {
@@ -1660,7 +1668,7 @@ public class R2RMLProcess {
 	    			(t.contains("ALTER") && t.contains("TABLE")) || 
 	    			(t.contains("CREATE") && t.contains("VIEW")) || 
 	    			t.contains("FOREIGN_KEY_CHECKS") ||
-	    			t.contains("INSERT INTO") ||  // Watch out!!!
+	    			(t.contains("INSERT INTO") && SQLInsert) ||  // Watch out!!!
 	    			t.contains("SET NAMES")
 	    		) {
 	    		commandException = t.trim();
@@ -1672,9 +1680,6 @@ public class R2RMLProcess {
 		// it's possible to there's no SQL exceptions
 		commandException = "";
 
-		// Update schema temporary name
-		//schema = dbName;
-		
 		// Postliminar commands
 		if(properties.getProperty("driver").equals("MySQL")) {
 			
